@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Planner</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#3E6560">
+<link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Planner"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#E4E3D3;--card:#F3F2E6;--ink:#1d2b29;--mute:#5d6a66;--line:#c9c8b6;--pink:#C2185B;--teal:#3E6560;--warn:#b3261e}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#16211f;--card:#1f2e2b;--ink:#ecebdc;--mute:#9db0aa;--line:#34463f;--pink:#f06292;--teal:#7fb3aa;--warn:#ff8a80}}
+:root[data-theme="dark"]{--bg:#16211f;--card:#1f2e2b;--ink:#ecebdc;--mute:#9db0aa;--line:#34463f;--pink:#f06292;--teal:#7fb3aa;--warn:#ff8a80}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*:before,*:after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:960px;margin:0 auto;padding:16px}
+h1,h2{font-family:Unbounded,system-ui,sans-serif;font-weight:700;margin:0}
+h1{font-size:20px}h2{font-size:15px;margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sp{flex:1}
+button,input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--pink);outline-offset:1px}
+button.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+button.pri{background:var(--pink);color:#fff;border-color:var(--pink)}
+.mute{color:var(--mute);font-size:13px}
+.ev{display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.ev:first-of-type{border-top:0}
+.bar{width:5px;border-radius:3px;flex:none}
+.ev b{display:block}
+.tag{font-size:12px;border-radius:99px;padding:1px 8px;background:var(--bg);border:1px solid var(--line);color:var(--mute)}
+.clash{color:var(--warn);border-color:var(--warn)}
+.warn{border-color:var(--warn)}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.wd{background:var(--bg);border-radius:10px;padding:6px;min-height:90px;cursor:pointer;border:1px solid transparent}
+.wd.sel{border-color:var(--pink)}.wd.today h3{color:var(--pink)}
+.wd h3{font-size:12px;margin:0 0 4px}
+.pill{font-size:11px;line-height:1.2;padding:2px 4px;border-radius:5px;margin-bottom:3px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.md{background:var(--bg);border-radius:8px;min-height:54px;padding:4px;cursor:pointer;font-size:12px;border:1px solid transparent}
+.md.sel{border-color:var(--pink)}.md.today{font-weight:700;color:var(--pink)}.md.out{opacity:.4}
+.dots{display:flex;gap:3px;flex-wrap:wrap;margin-top:3px}.dot{width:8px;height:8px;border-radius:50%}
+.hd{font-size:12px;color:var(--mute);text-align:center}
+.scroll{overflow-x:auto}
+@media (max-width:640px){.week{grid-template-columns:1fr}.wd{min-height:0}.pill{white-space:normal}}
+.t{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--line)}
+.t.done span{text-decoration:line-through;color:var(--mute)}
+details summary{cursor:pointer;font-weight:600}
+label{display:inline-flex;gap:4px;align-items:center}
+</style></head>
+<body><main>
+<div class="row" style="margin-bottom:12px"><h1>My Planner</h1><span class="sp"></span>
+<button id="theme" aria-label="Switch theme">Theme</button></div>
+<div id="dash"></div><div id="clashes"></div>
+<div class="card"><div class="row">
+<button data-v="day">Day</button><button data-v="week">Week</button><button data-v="month">Month</button><span class="sp"></span>
+<button data-nav="-1" aria-label="Previous">‹</button><button data-nav="today">Today</button><button data-nav="1" aria-label="Next">›</button></div>
+<h2 id="title" style="margin-top:12px"></h2><div id="view"></div></div>
+<div class="card" id="dayCard"></div>
+<div class="card"><h2>Tasks</h2>
+<div class="row"><input id="tt" placeholder="New task" style="flex:2;min-width:140px"><input id="td" type="date" aria-label="Deadline"><select id="tl"></select>
+<select id="tp"><option value="0">Urgent + important</option><option value="1" selected>Important, not urgent</option><option value="2">Urgent, less important</option><option value="3">Optional</option></select>
+<input id="te" type="number" min="0.5" step="0.5" value="1" style="width:70px" aria-label="Hours needed"><input id="tn" placeholder="Notes" style="flex:1;min-width:100px"><button class="pri" id="addT">Add task</button></div><div id="tasks"></div></div>
+<div class="card"><h2>Add an event</h2>
+<div class="row"><input id="et" placeholder="Title" style="flex:2;min-width:140px"><select id="es"></select>
+<input id="ed" type="date"><input id="ea" type="time" value="17:10"><input id="eb" type="time" value="18:45"></div>
+<div class="row" style="margin-top:8px"><span class="mute">Repeats weekly on:</span>
+<label><input type="checkbox" class="rd" value="1">Mon</label><label><input type="checkbox" class="rd" value="2">Tue</label><label><input type="checkbox" class="rd" value="3">Wed</label><label><input type="checkbox" class="rd" value="4">Thu</label><label><input type="checkbox" class="rd" value="5">Fri</label><label><input type="checkbox" class="rd" value="6">Sat</label><label><input type="checkbox" class="rd" value="0">Sun</label>
+<button class="pri" id="addE">Add event</button></div>
+<p class="mute" style="margin:8px 0 0">Leave the weekdays empty for a one-off event on the chosen date. If weekdays are ticked, the date is the start date.</p></div>
+<div class="card"><h2>Future plans / to add</h2><p class="mute" style="margin:0 0 8px">Park new ideas here. Add a date and time to check them against your schedule. Nothing here changes your existing commitments.</p>
+<div class="row"><input id="ft" placeholder="e.g. Church event, trip, new course" style="flex:2;min-width:140px"><input id="fd" type="date"><input id="fa" type="time"><input id="fb" type="time"><button class="pri" id="addF">Save plan</button></div><div id="fut"></div></div>
+<div class="card"><h2>Schedules</h2><div id="srcs"></div>
+<div class="row" style="margin-top:8px"><input id="sn" placeholder="New schedule, e.g. Hospital rotation" style="flex:2;min-width:160px"><input id="sc" type="color" value="#6a5acd" aria-label="Colour"><button id="addS">Add schedule</button></div>
+<details style="margin-top:12px"><summary>All events</summary><div id="evs"></div></details></div>
+</main>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const ds=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const pd=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)};
+const add=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const fmt=d=>DN[d.getDay()]+' '+d.getDate()+' '+d.toLocaleString('en',{month:'short'})+' '+d.getFullYear();
+const mins=t=>{const[a,b]=t.split(':').map(Number);return a*60+b};
+const uid=()=>Math.random().toString(36).slice(2,9);
+const T='Лекция: ',P='Практическое занятие: ';
+const cls=[['2026-10-12',T+'Конфиденциальная информация (ИБ)'],['2026-10-14',T+'Принципы и составляющие информационной безопасности (ИБ)'],
+['2026-10-16',T+'Угрозы и каналы утечки. Ограничение доступа к конфиденциальной информации (ИБ)'],['2026-10-19',T+'Общие понятия, нормативно-правовое регулирование (ИБ)'],
+['2026-10-21',T+'Виды и принципы обработки персональных данных (далее - ПД). Условия обработки, категории ПД. Согласие субъекта (ИБ)'],
+['2026-10-23',P+'Виды, принципы и условия обработки, категории ПД. Согласие субъекта (ИБ)'],
+['2026-10-26',T+'Предоставление, распространение, трансграничная передача ПД. Права субъектов ПД. Ответственность за нарушения в области ПД (ИБ)'],
+['2026-10-28',T+'Основные принципы построения систем обеспечения информационной безопасности (ИБ)'],
+['2026-10-30',P+'Основные принципы построения систем обеспечения информационной безопасности (ИБ)']];
+const seed=()=>({sources:[{id:'dig',name:'Digital Department (Pirogov)',color:'#C2185B',on:true},{id:'eng',name:'English teaching',color:'#3E6560',on:true},{id:'med',name:'Medicine',color:'#2f6fb3',on:true}],
+events:[{id:'i0',title:'Вводная лекция: Приветственная лекция на Цифровой кафедре (Артемова О. Р.)',src:'dig',date:'2026-10-07',start:'17:00',end:'18:00',note:'End time is not on the poster. Edit if needed.'},
+...cls.map((c,i)=>({id:'c'+i,title:c[1],src:'dig',date:c[0],start:'17:10',end:'18:45',note:'Module: Информационная безопасность (ИБ)'})),
+{id:'eng',title:'English teaching',src:'eng',date:'2026-10-06',days:[2,4],start:'18:00',end:'19:00',note:'Later option: 19:00–20:00. Edit under All events.'}],
+tasks:[]});
+let S;try{S=JSON.parse(localStorage.getItem('planner1'))}catch(e){}if(!S||!S.sources)S=seed();
+S.events.forEach(e=>{if(e.id==='eng'&&e.start==='17:00'&&e.end==='18:30'){e.start='18:00';e.end='19:00';e.note='Later option: 19:00–20:00. Edit under All events.'}});
+const MED=[['m1','Pediatrics (ПЕД), group 6.5.01','2026-10-06','2026-10-09','14:30','20:00'],['m2','Psychiatry (П-ПСИ), group 6.5.01','2026-10-12','2026-10-27','09:00','13:40'],['m3','Psychiatry (П-ПСИ), short day','2026-10-28','2026-10-28','09:00','13:00'],['m4','Therapy (П-ТЕР), group 6.5.01','2026-10-29','2026-11-03','09:00','17:00']];
+if(!S.events.some(e=>e.id==='m1'))MED.forEach(m=>S.events.push({id:m[0],title:m[1],src:'med',date:m[2],until:m[3],days:[1,2,3,4,5],start:m[4],end:m[5],note:'Read from the official timetable. Check the dates.'}));
+if(!S.sources.some(s=>s.id==='med'))S.sources.push({id:'med',name:'Medicine',color:'#2f6fb3',on:true});
+S.events.forEach(e=>{if(e.src==='dig'&&!/^Online/.test(e.note||''))e.note='Online. '+(e.note||'')});
+const save=()=>{try{localStorage.setItem('planner1',JSON.stringify(S))}catch(e){}};
+let view='week',cur=new Date();cur.setHours(0,0,0,0);let sel=new Date(cur);
+const src=id=>S.sources.find(s=>s.id===id)||{name:'?',color:'#888',on:true};
+function occ(d){const k=ds(d),w=d.getDay(),out=[];
+for(const e of S.events){if(!src(e.src).on)continue;
+if(e.days?.length?(e.days.includes(w)&&k>=e.date&&(!e.until||k<=e.until)):e.date===k)out.push(e)}
+return out.sort((a,b)=>mins(a.start)-mins(b.start))}
+const overlap=(a,b)=>mins(a.start)<mins(b.end)&&mins(b.start)<mins(a.end);
+function clashes(d){const o=occ(d),r=[];for(let i=0;i<o.length;i++)for(let j=i+1;j<o.length;j++)if(overlap(o[i],o[j]))r.push([o[i],o[j]]);return r}
+const clashIds=d=>new Set(clashes(d).flat().map(e=>e.id));
+function renderClashes(){const t=new Date();t.setHours(0,0,0,0);const L=[];
+for(let i=0;i<120;i++){const d=add(t,i);for(const[a,b]of clashes(d))L.push(`<div>${fmt(d)}, ${a.start}–${a.end}: <b>${esc(a.title.slice(0,40))}</b> vs <b>${esc(b.title.slice(0,40))}</b></div>`)}
+$('#clashes').innerHTML=L.length?`<div class="card warn"><h2 style="color:var(--warn)">${L.length} clash${L.length>1?'es':''} in the next 120 days</h2>${L.slice(0,8).join('')}${L.length>8?'<div class="mute">…and '+(L.length-8)+' more</div>':''}</div>`
+:`<div class="card"><h2>No clashes</h2><div class="mute">No overlapping events in the next 120 days across your active schedules.</div></div>`}
+function evHtml(e,c){const s=src(e.src);return `<div class="ev"><span class="bar" style="background:${s.color}"></span><div><b>${e.start}–${e.end} ${esc(e.title)}</b><span class="mute">${esc(s.name)}${e.note?' · '+esc(e.note):''}</span>${c?' <span class="tag clash">Clash</span>':''}</div></div>`}
+function renderDay(){const o=occ(sel),c=clashIds(sel),ts=S.tasks.filter(t=>t.due===ds(sel));
+$('#dayCard').innerHTML=`<h2>${fmt(sel)}</h2>`+(o.length?o.map(e=>evHtml(e,c.has(e.id))).join(''):'<div class="mute">Nothing scheduled. Add an event below.</div>')+
+(ts.length?'<div style="margin-top:8px"><b>Tasks due</b>'+ts.map(t=>`<div class="mute">${t.done?'✓':'○'} ${esc(t.title)}</div>`).join('')+'</div>':'')}
+function renderView(){let h='';
+if(view==='day'){$('#title').textContent=fmt(cur);sel=new Date(cur);h='<div class="mute">Details are shown below.</div>'}
+if(view==='week'){const m=add(cur,-((cur.getDay()+6)%7));$('#title').textContent=fmt(m)+' – '+fmt(add(m,6));
+h='<div class="week">'+[...Array(7)].map((_,i)=>{const d=add(m,i),k=ds(d),o=occ(d),c=clashIds(d);
+return `<div class="wd ${k===ds(sel)?'sel':''} ${k===ds(new Date())?'today':''}" data-d="${k}"><h3>${DN[d.getDay()]} ${d.getDate()}</h3>${o.map(e=>`<div class="pill" style="background:${src(e.src).color}">${c.has(e.id)?'⚠ ':''}${e.start} ${esc(e.title)}</div>`).join('')}</div>`}).join('')+'</div>'}
+if(view==='month'){$('#title').textContent=cur.toLocaleString('en',{month:'long',year:'numeric'});
+const f=new Date(cur.getFullYear(),cur.getMonth(),1),st=add(f,-((f.getDay()+6)%7));
+h='<div class="scroll"><div class="mg">'+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(x=>`<div class="hd">${x}</div>`).join('')+
+[...Array(42)].map((_,i)=>{const d=add(st,i),k=ds(d),o=occ(d),c=clashIds(d),n=S.tasks.filter(t=>t.due===k&&!t.done).length;
+return `<div class="md ${d.getMonth()!==cur.getMonth()?'out':''} ${k===ds(sel)?'sel':''} ${k===ds(new Date())?'today':''}" data-d="${k}">${d.getDate()}${c.size?' ⚠':''}<div class="dots">${o.map(e=>`<i class="dot" style="background:${src(e.src).color}"></i>`).join('')}${n?'<span class="tag">'+n+' task'+(n>1?'s':'')+'</span>':''}</div></div>`}).join('')+'</div></div>'}
+$('#view').innerHTML=h;$$('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===view));
+$$('[data-d]').forEach(x=>x.onclick=()=>{sel=pd(x.dataset.d);cur=new Date(sel);renderView();renderDay()})}
+function renderTasks(){const L=[...S.tasks].sort((a,b)=>(a.done-b.done)||(a.due||'9').localeCompare(b.due||'9'));
+$('#tasks').innerHTML=L.length?L.map(t=>{const late=!t.done&&t.due&&t.due<ds(new Date());return `<div class="t ${t.done?'done':''}"><input type="checkbox" data-td="${t.id}" ${t.done?'checked':''} aria-label="Done"><span>${esc(t.title)}${t.link?` <span class="tag">${esc(S.events.find(e=>e.id===t.link)?.title.slice(0,32)||'')}</span>`:''}${t.due?` <span class="tag ${late?'clash':''}">${late?'Overdue ':'Due '}${t.due}</span>`:''}</span><span class="sp"></span><button data-xt="${t.id}" aria-label="Delete task">✕</button></div>`}).join(''):'<div class="mute">No tasks yet. Add one and link it to a class so you see it with that day.</div>';
+$$('[data-td]').forEach(x=>x.onchange=()=>{S.tasks.find(t=>t.id===x.dataset.td).done=x.checked;save();all()});
+$$('[data-xt]').forEach(x=>x.onclick=()=>{S.tasks=S.tasks.filter(t=>t.id!==x.dataset.xt);save();all()})}
+function renderSetup(){const opts=S.sources.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+const keep=$('#es').value;$('#es').innerHTML=opts;if(keep)$('#es').value=keep;
+const el=S.events.filter(e=>!e.days).sort((a,b)=>a.date.localeCompare(b.date));
+$('#tl').innerHTML='<option value="">No linked class</option>'+el.map(e=>`<option value="${e.id}">${e.date} ${esc(e.title.slice(0,40))}</option>`).join('');
+$('#srcs').innerHTML=S.sources.map(s=>`<div class="row" style="padding:4px 0"><label><input type="checkbox" data-so="${s.id}" ${s.on?'checked':''}><i class="dot" style="background:${s.color}"></i>${esc(s.name)}</label></div>`).join('');
+$('#evs').innerHTML=S.events.map(e=>`<div class="ev"><span class="bar" style="background:${src(e.src).color}"></span><div><b>${esc(e.title)}</b><span class="mute">${e.days?'Every '+e.days.map(d=>DN[d]).join(', ')+' from '+e.date:e.date}</span>
+<div class="row" style="margin-top:4px"><input type="time" data-es="${e.id}" value="${e.start}"><input type="time" data-ee="${e.id}" value="${e.end}"><button data-xe="${e.id}">Delete</button></div></div></div>`).join('');
+$$('[data-so]').forEach(x=>x.onchange=()=>{src(x.dataset.so).on=x.checked;save();all()});
+$$('[data-es]').forEach(x=>x.onchange=()=>{S.events.find(e=>e.id===x.dataset.es).start=x.value;save();all()});
+$$('[data-ee]').forEach(x=>x.onchange=()=>{S.events.find(e=>e.id===x.dataset.ee).end=x.value;save();all()});
+$$('[data-xe]').forEach(x=>x.onclick=()=>{S.events=S.events.filter(e=>e.id!==x.dataset.xe);save();all()})}
+function all(){renderClashes();renderView();renderDay();renderTasks();renderSetup()}
+$$('[data-v]').forEach(b=>b.onclick=()=>{view=b.dataset.v;renderView()});
+$$('[data-nav]').forEach(b=>b.onclick=()=>{const n=b.dataset.nav;if(n==='today'){cur=new Date();cur.setHours(0,0,0,0)}else{const k=+n;cur=view==='month'?new Date(cur.getFullYear(),cur.getMonth()+k,1):add(cur,k*(view==='week'?7:1))}sel=new Date(cur);renderView();renderDay()});
+$('#addT').onclick=()=>{const t=$('#tt').value.trim();if(!t)return;S.tasks.push({id:uid(),title:t,due:$('#td').value,link:$('#tl').value,done:false});$('#tt').value='';save();all()};
+$('#addE').onclick=()=>{const t=$('#et').value.trim(),d=$('#ed').value;if(!t||!d||$('#ea').value>=$('#eb').value){alert('Enter a title, a date, and an end time after the start time.');return}
+const days=$$('.rd:checked').map(x=>+x.value);S.events.push({id:uid(),title:t,src:$('#es').value,date:d,start:$('#ea').value,end:$('#eb').value,...(days.length?{days}:{})});$('#et').value='';save();all()};
+$('#addS').onclick=()=>{const n=$('#sn').value.trim();if(!n)return;S.sources.push({id:uid(),name:n,color:$('#sc').value,on:true});$('#sn').value='';save();all()};
+$('#theme').onclick=()=>{const r=document.documentElement,d=getComputedStyle(r).getPropertyValue('--bg').trim()==='#16211f';r.dataset.theme=d?'light':'dark'};
+const PR=['Urgent + important','Important','Urgent, less important','Optional'],ST=['⬜ Not started','🟡 In progress','🟢 Completed'];
+S.future=S.future||[];
+const tst=t=>t.st??(t.done?2:0);
+const today0=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const dleft=k=>Math.round((pd(k)-today0())/864e5);
+function startBy(t){if(!t.due)return '';const e=+t.est||1,n=e>=6?6:e>=3?4:e>=1.5?2:1;let d=add(pd(t.due),-n);
+while(occ(d).some(x=>x.src==='eng')||d.getDay()===0)d=add(d,-1);return ds(d)}
+function load(d){return occ(d).length+S.tasks.filter(t=>t.due===ds(d)&&tst(t)<2).length}
+function flag(d){const c=clashes(d).length,l=load(d);return c||l>=3?'🔴 Heavy':l===2?'🟠 Busy':l===1?'🟢 Light':'🟢 Free'}
+function renderTasks(){const td=ds(today0());
+const L=[...S.tasks].sort((a,b)=>((tst(a)==2)-(tst(b)==2))||((a.pri??1)-(b.pri??1))||(a.due||'9').localeCompare(b.due||'9'));
+$('#tasks').innerHTML=L.length?L.map(t=>{const s=tst(t),late=s<2&&t.due&&t.due<td,sb=s<2?startBy(t):'';
+return `<div class="t ${s==2?'done':''}"><select data-st="${t.id}" aria-label="Status">${ST.map((x,i)=>`<option value="${i}" ${i==s?'selected':''}>${x}</option>`).join('')}</select>
+<span><b>${esc(t.title)}</b> ${late?'<span class="tag clash">🔴 Overdue</span>':''}<br><span class="tag">${PR[t.pri??1]}</span> <span class="tag">${t.est||1} h</span>${t.due?` <span class="tag">Due ${t.due}</span>`:''}${sb&&sb>td?` <span class="tag">Start by ${sb}</span>`:''}${t.link?` <span class="tag">${esc(S.events.find(e=>e.id===t.link)?.title.slice(0,28)||'')}</span>`:''}${t.notes?`<br><span class="mute">${esc(t.notes)}</span>`:''}</span><span class="sp"></span><button data-xt="${t.id}" aria-label="Delete task">✕</button></div>`}).join(''):'<div class="mute">No tasks yet. Add one with a deadline and an estimate, and you will get a start-by date.</div>';
+$$('[data-st]').forEach(x=>x.onchange=()=>{S.tasks.find(t=>t.id===x.dataset.st).st=+x.value;save();all()});
+$$('[data-xt]').forEach(x=>x.onclick=()=>{S.tasks=S.tasks.filter(t=>t.id!==x.dataset.xt);save();all()})}
+$('#addT').onclick=()=>{const t=$('#tt').value.trim();if(!t)return;S.tasks.push({id:uid(),title:t,due:$('#td').value,link:$('#tl').value,pri:+$('#tp').value,est:+$('#te').value||1,notes:$('#tn').value.trim(),assigned:ds(new Date()),st:0});$('#tt').value='';$('#tn').value='';save();all()};
+function renderDash(){const t=today0(),k=ds(t),tm=add(t,1),m=add(t,-((t.getDay()+6)%7)),open=S.tasks.filter(x=>tst(x)<2);
+const ev=d=>occ(d).map(e=>`<div>${e.start}–${e.end} ${esc(e.title.slice(0,70))}</div>`).join('')||'<div class="mute">Nothing scheduled</div>';
+const due=d=>open.filter(x=>x.due===ds(d)).map(x=>`<div>📌 ${esc(x.title)}</div>`).join('');
+let cl=0,dl=0,hv=0;for(let i=0;i<7;i++){const d=add(m,i);cl+=occ(d).filter(e=>e.src!=='eng').length;dl+=open.filter(x=>x.due===ds(d)).length;if(flag(d).startsWith('🔴'))hv++}
+const wk=cl+dl>=4||hv?'🟠 Busy week':'🟢 Manageable week';
+const up=open.filter(x=>x.due&&dleft(x.due)>=0&&dleft(x.due)<=28).sort((a,b)=>a.due.localeCompare(b.due));
+const rem=open.filter(x=>x.due&&[0,1,3,7].includes(dleft(x.due)));
+const od=open.filter(x=>x.due&&x.due<k).length,soon=up.filter(x=>dleft(x.due)<=7).length;
+$('#dash').innerHTML=`<div class="card"><h2>Today · ${fmt(t)} · ${flag(t)}</h2>${ev(t)}${due(t)}
+${rem.length?'<div style="margin-top:8px"><b>⏰ Reminders</b>'+rem.map(x=>`<div>${esc(x.title)}: ${dleft(x.due)?dleft(x.due)+' day(s) left':'due today'}</div>`).join('')+'</div>':''}
+<div style="margin-top:8px"><b>Prepare for tomorrow (${DN[tm.getDay()]})</b>${ev(tm)}${due(tm)}</div></div>
+<div class="card"><h2>This week · ${wk}</h2><div class="mute">${cl} classes, ${dl} deadlines, ${hv} heavy day(s). Teaching: Tue, Thu.</div>
+<div class="row" style="margin-top:8px">${[...Array(7)].map((_,i)=>{const d=add(m,i);return `<span class="tag">${DN[d.getDay()]} ${flag(d)}</span>`}).join('')}</div></div>
+<div class="card"><h2>Tasks and upcoming</h2><div class="row"><span class="tag ${od?'clash':''}">🔴 ${od} overdue</span><span class="tag">⏳ ${soon} due within 7 days</span><span class="tag">🟡 ${open.filter(x=>tst(x)==1).length} in progress</span><span class="tag">🟢 ${S.tasks.filter(x=>tst(x)==2).length} done</span><span class="tag">Future: ${S.future.length}</span></div>
+${up.map(x=>{const n=dleft(x.due),sb=startBy(x);return `<div class="mute" style="margin-top:4px">${x.due} (${n} days): ${esc(x.title)}${n>7&&sb?`. Start by ${sb}.`:n>0?'. Start now.':''}${n>=0&&n<=7?'':''}</div>`}).join('')}</div>`}
+function renderFut(){$('#fut').innerHTML=S.future.map(f=>{let r='⬜ Add a date to check';if(f.date){const d=pd(f.date),o=occ(d);const hit=f.start&&f.end?o.find(e=>overlap(e,f)):null;
+r=hit?`🔴 Conflict with "${esc(hit.title.slice(0,40))}" (${hit.start}–${hit.end})`:o.length||clashes(d).length?`🟠 ${o.length} commitment(s) that day: ${o.map(e=>e.start).join(', ')}`:'🟢 No conflict'}
+return `<div class="ev"><div><b>${esc(f.title)}</b><span class="mute">${f.date||'No date'} ${f.start?f.start+'–'+f.end:''}</span>${r}<div class="row" style="margin-top:4px">${f.date&&f.start&&f.end?`<button data-fm="${f.id}">Add to schedule</button>`:''}<button data-fx="${f.id}">Delete</button></div></div></div>`}).join('')||'<div class="mute">Empty. Add what is coming.</div>';
+$$('[data-fx]').forEach(x=>x.onclick=()=>{S.future=S.future.filter(f=>f.id!==x.dataset.fx);save();all()});
+$$('[data-fm]').forEach(x=>x.onclick=()=>{const f=S.future.find(q=>q.id===x.dataset.fm);S.events.push({id:uid(),title:f.title,src:$('#es').value,date:f.date,start:f.start,end:f.end});S.future=S.future.filter(q=>q.id!==f.id);save();all()})}
+$('#addF').onclick=()=>{const t=$('#ft').value.trim();if(!t)return;S.future.push({id:uid(),title:t,date:$('#fd').value,start:$('#fa').value,end:$('#fb').value});$('#ft').value='';save();all()};
+function all(){renderDash();renderClashes();renderView();renderDay();renderTasks();renderSetup();renderFut()}
+all();
+try{if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js')}catch(e){}
+</script></body></html>
